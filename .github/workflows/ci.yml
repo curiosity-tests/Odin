@@ -1,6 +1,27 @@
 name: CI
-on: [push, pull_request, workflow_dispatch]
+run-name: "CI ${{ inputs.leg || github.event_name }} ${{ inputs.racecar_run }}"
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      leg:
+        description: "baseline (uninstrumented) or instrumented (under chalk/curiosity)"
+        type: choice
+        options: [instrumented, baseline]
+        default: baseline
+      profile:
+        description: "CrashOverride chalk profile"
+        type: string
+        default: curiosity-tests-racecar
+      racecar_run:
+        description: "racecar correlation token, echoed into the run name"
+        type: string
+        default: ""
 
+
+env:
+  CHALK_ON: ${{ inputs.leg == 'instrumented' }}
 jobs:
   build_netbsd:
     name: NetBSD Build, Check, and Test
@@ -82,7 +103,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, ubuntu-24.04-arm]
+        os: [ubuntu-latest, ubuntu-24.04-arm]
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os == 'macos-latest' && 'MacOS ARM' || (matrix.os == 'ubuntu-latest' && 'Ubuntu') || (matrix.os == 'ubuntu-24.04-arm' && 'Ubuntu ARM') }} Build, Check, and Test
     timeout-minutes: 15
@@ -202,6 +223,7 @@ jobs:
         run: ./odin check examples/all/sdl3 -vet -vet-tabs -strict-style -vet-style -warnings-as-errors -disallow-do -no-entry-point -target:openbsd_amd64
 
   build_windows:
+    if: false   # racecar: non-Linux runner, not measured here
     name: Windows Build, Check, and Test
     runs-on: windows-2022
     timeout-minutes: 15
